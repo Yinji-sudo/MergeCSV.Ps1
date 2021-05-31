@@ -1,0 +1,52 @@
+. "$PSScriptRoot\lib.ps1"
+
+$MainWindowXAML = Get-MainWindowXAML
+
+$MainWindowReader = (New-Object System.Xml.XmlNodeReader $MainWindowXAML)
+
+$SyncHash = @{}
+$SyncHash.Window = [Windows.Markup.XamlReader]::Load($MainWindowReader)
+
+$MainWindowXAML.SelectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]") | ForEach-Object{
+    
+    $SyncHash.Add($_.Name,$SyncHash.Window.FindName($_.Name) )
+}
+
+#Input 
+$SyncHash.btn_inputbrowse.add_click({
+
+    [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+    $FolderBrowser = [System.Windows.Forms.FolderBrowserDialog]::New()
+	$FolderBrowser.Description = 'Select folder containing CSVs'
+	$FolderBrowser.UseDescriptionForTitle = $True
+	$FolderBrowser.ShowDialog()
+
+    $Data = Get-ChildItem -Path $FolderBrowser.SelectedPath | Import-Csv
+})
+
+#Output
+$SyncHash.btn_outputbrowse.add_click({
+
+    [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+	$SaveFile = [System.Windows.Forms.SaveFileDialog]::New()
+	$SaveFile.Title = 'Save CSV as'
+	$SaveFile.Filter = 'CSV files (*.csv)|*.csv'
+	$SaveFile.DefaultExt = 'csv'
+	$SaveFile.OverwritePrompt = $True
+	$SaveFile.ShowDialog()
+
+    $Data | Export-Csv -Path $SaveFile.FileName
+
+})
+
+#Create
+$SyncHash.btn_create.add_click({
+
+
+})
+
+
+$SyncHash.tbx_outputpath.Text = $PSScriptRoot
+
+
+$SyncHash.Window.ShowDialog()| Out-Null
